@@ -5,13 +5,17 @@ def main():
     sys.stdout.reconfigure(encoding='utf-8')
 
     print("==================================================")
-    print("           Mon3tr 重獲體定幀部署計算器            ")
+    print("           Mon3tr 重構體定幀部署計算器            ")
     print("==================================================")
 
     # 1. 輸入當前攻速
     try:
-        as_input = input("請輸入您的當前攻速（初始值為100，如120）：").strip()
-        attack_speed = float(as_input)
+        as_input = input("請輸入您的當前攻速（直接按回車預設為 120）：").strip()
+        if as_input == "":
+            attack_speed = 120.0
+        else:
+            attack_speed = float(as_input)
+            
         if attack_speed <= 0:
             print("錯誤：攻速必須大於零。")
             return
@@ -21,12 +25,12 @@ def main():
 
     # 2. 選擇重構體生命值狀態（傻貓指數）
     print("\n請選擇重構體生命值狀態（影響演出用香水的回血能力）：")
-    print("1. 有救 (生命值在 [8000, 12000) 之間)")
-    print("2. 難救 (生命值在 [12000, 24000) 之間) [預設]")
+    print("1. 有救 (生命值在 [8000, 12000) 之間) [預設]")
+    print("2. 難救 (生命值在 [12000, 24000) 之間)")
     
-    state_input = input("選擇狀態 (1-2，直接按回車預設為 2)：").strip()
+    state_input = input("選擇狀態 (1-2，直接按回車預設為 1)：").strip()
     if state_input == "":
-        state = 3  # 難救
+        state = 2  # 有救
     else:
         try:
             choice = int(state_input)
@@ -35,11 +39,11 @@ def main():
             elif choice == 2:
                 state = 3  # 難救
             else:
-                print("輸入無效，將使用預設的難救狀態。")
-                state = 3
+                print("輸入無效，將使用預設的有救狀態。")
+                state = 2
         except ValueError:
-            print("輸入無效，將使用預設的難救狀態。")
-            state = 3
+            print("輸入無效，將使用預設的有救狀態。")
+            state = 2
 
     # 3. 計算第一A動畫長度 L1
     # 基礎攻擊間隔為 2.85 秒，在當前攻速下：

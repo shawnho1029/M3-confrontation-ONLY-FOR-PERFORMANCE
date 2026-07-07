@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon3tr 重構體定幀部署計算器 - 明日方舟</title>
+    <meta name="description" content="針對明日方舟薩卡茲肉鴿中 Mon3tr 搭配演出用香水定幀部署重構體的精確計算器，幫助優化部署幀數以確保持續治療。">
+    <!-- Google Fonts Outfit & Noto Sans TC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0d0f12;
+            --card-bg: rgba(20, 24, 33, 0.65);
+            --card-border: rgba(255, 255, 255, 0.08);
+            --primary: #3b82f6;
+            --primary-glow: rgba(59, 130, 246, 0.35);
+            --accent: #a855f7;
+            --accent-glow: rgba(168, 85, 247, 0.35);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --success: #10b981;
+            --success-glow: rgba(16, 185, 129, 0.25);
+            --warning: #f59e0b;
+            --warning-glow: rgba(245, 158, 11, 0.25);
+            --danger: #ef4444;
+            --danger-glow: rgba(239, 68, 68, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: 
+                radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.12) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(168, 85, 247, 0.12) 0px, transparent 50%);
+            color: var(--text-main);
+            font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 800px;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #c084fc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+            letter-spacing: 1px;
+            text-shadow: 0 0 30px rgba(96, 165, 250, 0.2);
+        }
+
+        header p {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 2.5rem;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            transition: border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 0 0 30px rgba(96, 165, 250, 0.05);
+        }
+
+        .form-group {
+            margin-bottom: 1.8rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-main);
+            margin-bottom: 0.6rem;
+            letter-spacing: 0.5px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 0.9rem 1.2rem;
+            color: #fff;
+            font-size: 1.1rem;
+            font-family: inherit;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        input[type="number"]:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 15px var(--primary-glow);
+            background: rgba(17, 24, 39, 0.95);
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .radio-card {
+            background: rgba(17, 24, 39, 0.5);
+            border: 1px solid var(--card-border);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .radio-card:hover {
+            background: rgba(17, 24, 39, 0.8);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .radio-card.active {
+            border-color: var(--accent);
+            background: rgba(168, 85, 247, 0.06);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .radio-card input[type="radio"] {
+            accent-color: var(--accent);
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .radio-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .radio-title {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .radio-desc {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.1rem;
+        }
+
+        /* Results Area */
+        .results-section {
+            margin-top: 2.5rem;
+            padding-top: 2rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .result-box {
+            background: rgba(17, 24, 39, 0.6);
+            border-radius: 14px;
+            padding: 1.5rem;
+            border: 1px solid var(--card-border);
+        }
+
+        .result-box h3 {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 0.6rem;
+        }
+
+        .result-val {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: #fff;
+        }
+
+        .frames-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin-top: 0.5rem;
+        }
+
+        .frame-badge {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(168, 85, 247, 0.15));
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 8px;
+            padding: 0.4rem 0.8rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #93c5fd;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: all 0.2s ease;
+        }
+
+        .frame-badge:hover {
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .status-banner {
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            border: 1px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .status-banner.success {
+            background: rgba(16, 185, 129, 0.08);
+            border-color: var(--success);
+            box-shadow: 0 0 15px var(--success-glow);
+        }
+
+        .status-banner.success .status-title {
+            color: var(--success);
+        }
+
+        .status-banner.warning {
+            background: rgba(245, 158, 11, 0.08);
+            border-color: var(--warning);
+            box-shadow: 0 0 15px var(--warning-glow);
+        }
+
+        .status-banner.warning .status-title {
+            color: var(--warning);
+        }
+
+        .status-banner.danger {
+            background: rgba(239, 68, 68, 0.08);
+            border-color: var(--danger);
+            box-shadow: 0 0 15px var(--danger-glow);
+        }
+
+        .status-banner.danger .status-title {
+            color: var(--danger);
+        }
+
+        .status-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+        }
+
+        .status-desc {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        .status-suggest {
+            font-weight: 600;
+            color: #fff;
+            margin-top: 0.2rem;
+        }
+
+        /* Recommended Speed List */
+        .recommended-section {
+            background: rgba(20, 24, 33, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(8px);
+        }
+
+        .recommended-section h2 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .recommended-section h2::before {
+            content: "";
+            display: inline-block;
+            width: 4px;
+            height: 18px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+
+        .recommended-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 0.6rem;
+        }
+
+        .rec-item {
+            background: rgba(17, 24, 39, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 8px;
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            transition: all 0.2s ease;
+        }
+
+        .rec-item.active {
+            border-color: var(--success);
+            background: rgba(16, 185, 129, 0.06);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .rec-item:hover {
+            border-color: rgba(255, 255, 255, 0.1);
+            background: rgba(17, 24, 39, 0.7);
+        }
+
+        footer {
+            text-align: center;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 0.8rem;
+            margin-top: 1rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .radio-group {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 1.5rem;
+            }
+            header h1 {
+                font-size: 1.7rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Mon3tr 重構體定幀部署計算器</h1>
+        <p>明日方舟薩卡茲肉鴿專用，定幀卡索敵與流血循環對齊工具</p>
+    </header>
+
+    <main class="card">
+        <!-- 攻速輸入 -->
+        <div class="form-group">
+            <label for="asInput">當前攻速 (AS)</label>
+            <div class="input-wrapper">
+                <input type="number" id="asInput" value="120" placeholder="請輸入攻速，如 120" step="any">
+            </div>
+        </div>
+
+        <!-- 狀態選擇 -->
+        <div class="form-group">
+            <label>重構體生命值狀態 (傻貓指數)</label>
+            <div class="radio-group">
+                <div class="radio-card active" id="cardState1" onclick="selectState(1)">
+                    <input type="radio" id="state1" name="state" value="2" checked>
+                    <div class="radio-info">
+                        <span class="radio-title">有救狀態</span>
+                        <span class="radio-desc">生命值 [8000, 12000) 之間</span>
+                    </div>
+                </div>
+                <div class="radio-card" id="cardState2" onclick="selectState(2)">
+                    <input type="radio" id="state2" name="state" value="3">
+                    <div class="radio-info">
+                        <span class="radio-title">難救狀態</span>
+                        <span class="radio-desc">生命值 [12000, 24000) 之間</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 結果顯示區 -->
+        <div class="results-section">
+            <div class="result-box">
+                <h3>Mon3tr 第一A動畫長度</h3>
+                <div class="result-val" id="durationResult">-- 幀</div>
+            </div>
+
+            <div class="result-box">
+                <h3>部署建議與幀數示例 (以 Mon3tr 部署幀為第 0 幀)</h3>
+                <div class="result-val" id="solutionRule">計算中...</div>
+                <div class="frames-list" id="framesList">
+                    <!-- 動態生成建議幀數 -->
+                </div>
+            </div>
+
+            <!-- 持續治療驗證狀態 -->
+            <div class="status-banner" id="statusBanner">
+                <span class="status-title" id="statusTitle">狀態讀取中</span>
+                <span class="status-desc" id="statusDesc">請輸入有效的攻速值。</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- 推薦攻速區間 -->
+    <section class="recommended-section">
+        <h2>持續治療推薦攻速參考區間</h2>
+        <div class="recommended-grid" id="recommendedGrid">
+            <!-- 動態生成推薦攻速項目 -->
+        </div>
+    </section>
+
+    <footer>
+        <p>© 2026 明日方舟 Mon3tr 定幀部署計算器 • 設計精美版</p>
+    </footer>
+</div>
+
+<script>
+    // 推薦攻速區間列表
+    const recommendedIntervals = [
+        [124, 124], [129, 130], [135, 136], [142, 143], [149, 151],
+        [157, 159], [167, 169], [177, 180], [188, 192], [202, 206],
+        [217, 222], [235, 240], [256, 263], [281, 289], [311, 322],
+        [349, 363], [398, 417], [463, 488], [552, 589]
+    ];
+
+    // 初始化推薦攻速 UI 列表
+    function initRecommendedUI() {
+        const grid = document.getElementById("recommendedGrid");
+        grid.innerHTML = "";
+        recommendedIntervals.forEach(([low, high]) => {
+            const div = document.createElement("div");
+            div.className = "rec-item";
+            div.id = `rec-${low}-${high}`;
+            if (low === high) {
+                div.textContent = `${low}`;
+            } else {
+                div.textContent = `${low} - ${high}`;
+            }
+            grid.appendChild(div);
+        });
+    }
+
+    // 單選卡片切換
+    function selectState(val) {
+        document.getElementById("state1").checked = (val === 1);
+        document.getElementById("state2").checked = (val === 2);
+        
+        document.getElementById("cardState1").classList.toggle("active", val === 1);
+        document.getElementById("cardState2").classList.toggle("active", val === 2);
+        
+        calculate();
+    }
+
+    // 核心計算
+    function calculate() {
+        const asInput = document.getElementById("asInput").value;
+        const attackSpeed = parseFloat(asInput);
+        
+        const durationResult = document.getElementById("durationResult");
+        const solutionRule = document.getElementById("solutionRule");
+        const framesList = document.getElementById("framesList");
+        const statusBanner = document.getElementById("statusBanner");
+        const statusTitle = document.getElementById("statusTitle");
+        const statusDesc = document.getElementById("statusDesc");
+
+        // 清空之前的狀態
+        framesList.innerHTML = "";
+        
+        if (isNaN(attackSpeed) || attackSpeed <= 0) {
+            durationResult.textContent = "-- 幀";
+            solutionRule.textContent = "請輸入有效的攻速值";
+            statusBanner.className = "status-banner danger";
+            statusTitle.textContent = "無效輸入";
+            statusDesc.textContent = "攻速必須大於零。";
+            return;
+        }
+
+        // 1. 計算動畫長度 L1
+        const l1Raw = 8550.0 / attackSpeed;
+        const l1 = Math.max(1, Math.min(85, Math.round(l1Raw)));
+        durationResult.innerHTML = `${l1} <span style="font-size:1.1rem; font-weight:400; color:var(--text-muted);">幀 (原始值: ${l1Raw.toFixed(2)})</span>`;
+
+        // 2. 獲取生命狀態
+        const state = document.getElementById("state1").checked ? 2 : 3; // 2 = 有救, 3 = 難救
+
+        // 3. 定幀部署餘數計算
+        let validMod = [];
+        let hasSolution = true;
+
+        if (state === 2) { // 有救
+            // T_dep % 3 != 0 且 T_dep % 3 != L1 % 3
+            for (let m of [1, 2]) {
+                if (m !== (l1 % 3)) {
+                    validMod.push(m);
+                }
+            }
+        } else if (state === 3) { // 難救
+            // T_dep % 3 != 0 且 T_dep % 3 == L1 % 3
+            for (let m of [1, 2]) {
+                if (m === (l1 % 3)) {
+                    validMod.push(m);
+                }
+            }
+            if (validMod.length === 0) {
+                hasSolution = false;
+            }
+        }
+
+        // 4. 更新部署建議 UI
+        if (!hasSolution) {
+            solutionRule.textContent = "警告：此狀態與攻速下部署無解！";
+            solutionRule.style.color = "var(--danger)";
+        } else {
+            solutionRule.style.color = "#fff";
+            const ruleDesc = validMod.map(m => `3n + ${m}`).join(" 或 ");
+            solutionRule.textContent = `規律：${ruleDesc} 幀`;
+
+            // 生成前 8 個部署示例幀
+            let examples = [];
+            validMod.forEach(m => {
+                for (let n = 0; n < 5; n++) {
+                    examples.push(3 * n + m);
+                }
+            });
+            examples.sort((a, b) => a - b);
+            
+            examples.slice(0, 8).forEach(frame => {
+                const badge = document.createElement("span");
+                badge.className = "frame-badge";
+                badge.textContent = `第 ${frame} 幀`;
+                framesList.appendChild(badge);
+            });
+        }
+
+        // 5. 攻速推薦區間驗證
+        let isRecommended = false;
+        recommendedIntervals.forEach(([low, high]) => {
+            const item = document.getElementById(`rec-${low}-${high}`);
+            if (item) {
+                const active = (attackSpeed >= low && attackSpeed <= high);
+                item.classList.toggle("active", active);
+                if (active) isRecommended = true;
+            }
+        });
+
+        // 6. 更新持續治療狀態 banner
+        if (isRecommended) {
+            statusBanner.className = "status-banner success";
+            statusTitle.textContent = "持續治療驗證成功";
+            statusDesc.innerHTML = `當前攻速落於推薦區間。在建議幀數部署重構體後，可以實現 <span style="color:#fff; font-weight:600;">持續循環治療</span>！`;
+        } else {
+            statusBanner.className = "status-banner warning";
+            statusTitle.textContent = "無法保證持續治療";
+            
+            // 尋找最近的推薦攻速
+            let flatList = [];
+            recommendedIntervals.forEach(([low, high]) => {
+                for (let i = low; i <= high; i++) flatList.push(i);
+            });
+            const closest = flatList.reduce((prev, curr) => Math.abs(curr - attackSpeed) < Math.abs(prev - attackSpeed) ? curr : prev);
+            
+            statusDesc.innerHTML = `當前攻速不符合持續治療的推薦區間，可能會中斷後續的治療循環。<br><div class="status-suggest">建議將攻速調整至鄰近推薦點：${closest}</div>`;
+        }
+    }
+
+    // 監聽攻速輸入變化
+    document.getElementById("asInput").addEventListener("input", calculate);
+
+    // 初始化頁面
+    initRecommendedUI();
+    calculate();
+</script>
+</body>
+</html>
